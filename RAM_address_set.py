@@ -1,47 +1,81 @@
 import re
+from shutil import copyfile
 
-with open('setRAM.txt') as fp:
-    lines = fp.read().split("\n")
-    
-fp.close()
+## All available setting here
+# input and output files path and name
+SETTING_FILE = 'setRAM_test.txt'
+OUTPUT_FILE = 'output_test.coe'
 
-fp = open('testing1.coe', 'w')
+# customization
+ACCEPT_RADIX = 16 # the maximum range for each bit, 16 for hex
+MAX_SIZE = 150000 # maximum size of the targetted RAM 
+DEFAULT_VALUE = 0 # default value for the remaining value of RAM
+NUM_VALUE_EACH = 10 # number of values in each line of coe output, wont affect Xilinx IP but affect our debug
 
-fp.write('memory_initialization_radix=16;\n')
+## end of setting
+
+try:
+    with open(SETTING_FILE) as fp:
+        lines = fp.read().split("\n")
+except IOError:
+    print("Error: the SETTING_FILE does not exist.. exiting..")
+
+try:
+    with open(OUTPUT_FILE) as fp:
+        pass
+    copyfile(OUTPUT_FILE, '{}.bak'.format(OUTPUT_FILE))
+except:
+    pass
+
+try:
+    fp = open(OUTPUT_FILE, 'w')
+except IOError:
+    print("Cannot open the OUTPUT_FILE for write.. exiting..")
+
+fp.write('memory_initialization_radix={};\n'.format(ACCEPT_RADIX))
 fp.write('memory_initialization_vector=')
 
-target = 0
+addr = 0
 
-maxsize = 150000
-wordArray = []
-
-for i in range(0, maxsize):
-    wordArray.append(0)
+wordArray = [DEFAULT_VALUE]*(MAX_SIZE-1)
 
 for line in lines:
-    reObj = re.search('0x([0-9a-fA-F]+) ?= ?(.+)', line)
+    reObj = re.search('0x([0-9a-fA-F]+) *?= *?([0-9a-fA-F]+) *?\* *?([0-9]+) *?$', line)
     if reObj:
-        if target != 0:
-            print('stop at 0x', format(target-1, '02X'))
-        target = int(reObj.group(1), 16)
-        print('printing at 0x',reObj.group(1))
-        #seeking to there. 
-        wordArray[target] = reObj.group(2)
-        target = target + 1
+        if addr != 0:
+            print('stopped at 0x{:02X}'.format(addr-1))
+        addr = int(reObj.group(1), 16)
+        print('Start at 0x{}, '.format(reObj.group(1)), end='')
+        # seeking to there. 
+        numEnd = int(reObj.group(3))
+        for i in range(0, numEnd):
+            wordArray[addr] = reObj.group(2)
+            addr+=1
+            i+=1
     else:
-        reObj = re.search('([0-9a-fA-F]+)', line)
+        reObj = re.search('0x([0-9a-fA-F]+) *?= *?([0-9a-fA-F]+) *?$', line)
         if reObj:
-            wordArray[target] = reObj.group(1)
-            target = target + 1
+            if addr != 0:
+                print('stopped at 0x{:02X}'.format(addr-1))
+            addr = int(reObj.group(1), 16)
+            print('Start at 0x{}, '.format(reObj.group(1)), end='')
+            # seeking to there. 
+            wordArray[addr] = reObj.group(2)
+            addr+=1
+        else:
+            reObj = re.search('([0-9a-fA-F]+)', line)
+            if reObj:
+                wordArray[addr] = reObj.group(1)
+                addr+=1
+print('stopped at 0x{:02X}'.format(addr-1))
 
 current = 0
-for item in wordArray:
+for word in wordArray:
     if current == 9:
-        fp.write("%s\n" % item)
+        fp.write("{}\n".format(word))
         current = 0
     else: 
-        fp.write("%s " % item)
+        fp.write("{} ".format(word))
         current = current + 1
 
 fp.close()
-#int(re.group(0), 16)
