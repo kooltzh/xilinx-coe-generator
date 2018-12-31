@@ -1,0 +1,4 @@
+*.sublime-project
+*.sublime-workplace
+*_test.py
+*.bak
