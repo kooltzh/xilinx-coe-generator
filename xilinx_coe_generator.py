@@ -45,7 +45,8 @@ addr = 0
 wordArray = [DEFAULT_DATA]*(MAX_SIZE-1)
 
 for line in lines:
-    reObj = re.search('^ *?0x([0-9a-fA-F]+) *?= *?([0-9a-fA-F]+) *?\* *?([0-9]+) *?$', line)
+    line = line.strip()
+    reObj = re.search('^0x([0-9a-fA-F]+) *?= *?([0-9a-fA-F]+) *?\* *?([0-9]+)$', line)
     if reObj:
         if addr != 0:
             print('stop at 0x{:02X}'.format(addr-1)) #because add 1 after saving ram
@@ -58,7 +59,7 @@ for line in lines:
             addr+=1
             i+=1
     else:
-        reObj = re.search('^ *?0x([0-9a-fA-F]+) *?= *?([0-9a-fA-F]+) *?$', line)
+        reObj = re.search('^0x([0-9a-fA-F]+) *?= *?([0-9a-fA-F]+)$', line)
         if reObj:
             if addr != 0:
                 print('stop at 0x{:02X}'.format(addr-1))
@@ -68,14 +69,14 @@ for line in lines:
             wordArray[addr] = reObj.group(2)
             addr+=1
         else:
-            reObj = re.search('^ *?([0-9a-fA-F]+) *?\* *?([0-9]+) *?$', line)
+            reObj = re.search('^([0-9a-fA-F]+) *?\* *?([0-9]+)$', line)
             if reObj:
                 numEnd = int(reObj.group(2))
                 for i in range(0, numEnd):
                     wordArray[addr] = reObj.group(1)
                     addr+=1
             else:
-                reObj = re.search('^ *?([0-9a-fA-F]+) *?$', line)
+                reObj = re.search('^([0-9a-fA-F]+)$', line)
                 if reObj:
                     wordArray[addr] = reObj.group(1)
                     addr+=1
